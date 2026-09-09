@@ -37,9 +37,13 @@ Drop authors that are organizations, not individuals — you can usually tell fr
 
 For each remaining candidate: `GET https://huggingface.co/api/users/<username>/overview` — this returns their model/dataset counts, follower count, and organization memberships. If this 404s, the account is an org, not a person — drop it (per step 3) rather than erroring out.
 
-Best-effort GitHub cross-reference: try to find a matching GitHub profile (username match, or a link surfaced on their Hugging Face profile page). Treat this as an inferred signal, not a verified fact, and label it as such in the tracker.
+Best-effort GitHub cross-reference: check `github.com/<username>` directly for a same-handle match (don't use `github.com/search` — it's blocked by robots.txt for WebFetch and will fail outright). A matching username is not enough on its own to call it a match — a same-handle account can be an unrelated placeholder with no real activity. Before treating it as the same person, look for at least one corroborating signal: matching display name, matching technical focus in their bio/pinned repos, or a follower count roughly consistent with their Hugging Face profile. If the GitHub account has near-zero followers/repos while the Hugging Face profile is well-established, that's a sign it's *not* the same person, not a weak-but-real match — say so plainly rather than presenting it as a found profile. Real-world outcome to expect: this will genuinely miss or misfire on a meaningful fraction of candidates, not just occasionally — always label it as inferred and flag low-confidence cases explicitly in the tracker.
 
 GitHub access note: direct calls to `api.github.com` from the cloud sandbox are blocked by a proxy restriction regardless of any token — use WebFetch for GitHub lookups, not Bash/curl. WebFetch hits GitHub's API unauthenticated on a shared IP and can 403 under load; retry once or twice. If the user has linked their computer, GitHub calls can run from there instead for higher, token-backed rate limits. (This restriction does not apply to the Hugging Face API calls above — those work fine from the cloud sandbox.)
+
+## 5. Exclude already-tracked / do-not-contact
+
+Before scoring, check the existing tracker (if one exists for this role) for this candidate by `hf_username`. Skip anyone already marked `do_not_contact` or already present with unchanged top-model data. This avoids duplicate entries across repeated runs.
 
 ## 5. Exclude already-tracked / do-not-contact
 
